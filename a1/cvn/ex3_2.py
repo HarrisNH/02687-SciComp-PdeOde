@@ -2,22 +2,23 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 
+
 def fdcoeffV(k, xbar, x):
 
     x = np.asarray(x, dtype=float)
     n = x.size
 
     A = np.ones((n, n), dtype=float)
-    xrow = (x - xbar) 
+    xrow = x - xbar
 
-    for i in range(1, n):  
-        A[i, :] = (xrow ** i) / math.factorial(i)
+    for i in range(1, n):
+        A[i, :] = (xrow**i) / math.factorial(i)
 
     b = np.zeros(n, dtype=float)
-    b[k] = 1.0  
+    b[k] = 1.0
 
     c = np.linalg.solve(A, b)
-    return c 
+    return c
 
 
 def fdcoeffF(k: int, xbar, x):
@@ -60,8 +61,10 @@ def fdcoeffF(k: int, xbar, x):
     c = C[:, k]
     return c
 
+
 def u(x):
     return np.exp(np.cos(x))
+
 
 def u_dd_exact_at_0():
     # u''(x) = (-cos x + sin^2 x) * exp(cos x), so u''(0) = -e
@@ -75,19 +78,18 @@ k = 2
 exact = u_dd_exact_at_0()
 print("Exact u''(0) =", exact)
 
-num = 30
-err = np.zeros(num-1)
-err_centered = np.zeros(num-1)
-hvals = np.zeros(num-1)
+num = 10
+err = np.zeros(num - 1)
+err_centered = np.zeros(num - 1)
+hvals = np.zeros(num - 1)
 
 i = 0
-for m in [ i for i in range(2, num)]:
+for m in range(2, num):
     h = 1 / m**2
     hvals[i] = h
 
     x_nodes = xbar + h * np.arange(0, 5)
-    x_nodes2 = xbar + h * np.arange(-2,3)
-
+    x_nodes2 = xbar + h * np.arange(-2, 3)
 
     c = fdcoeffF(k, xbar, x_nodes)
     c_centered = fdcoeffF(k, xbar, x_nodes2)
@@ -103,7 +105,6 @@ for m in [ i for i in range(2, num)]:
 print(f"h={h: .3e}   approx={approx: .12f}   err={err[-1]: .3e}")
 
 
-
 mask = np.isfinite(err) & (err > 0) & np.isfinite(hvals) & (hvals > 0)
 
 p = np.polyfit(np.log(hvals[mask]), np.log(err[mask]), 1)[0]
@@ -111,8 +112,8 @@ p_cent = np.polyfit(np.log(hvals[mask]), np.log(err_centered[mask]), 1)[0]
 print("Estimated convergence rate p_non_centered =", p)
 print("Estimated convergence rate p_centered =", p_cent)
 
-plt.loglog(hvals, err, 'o-', label = 'not centered')
-plt.loglog(hvals, err_centered, 'o-',label = 'centered')
+plt.loglog(hvals, err, "o-", label="not centered")
+plt.loglog(hvals, err_centered, "o-", label="centered")
 plt.xlabel("h")
 plt.ylabel("error")
 plt.legend()
@@ -121,3 +122,18 @@ plt.savefig("img/ex3_error.png")
 
 plt.plot(approx)
 plt.savefig("img/ex3_approx_func.png")
+
+
+## To check why we see order 4 conv. for uncentered
+a_4 = 11 / 12
+a_3 = -14 / 3
+a_2 = 19 / 2
+a_1 = -26 / 3
+a0 = 35 / 12
+
+f1 = -4 * a_4 - 3 * a_3 - 2 * a_2 - a_1
+f2 = 16 * a_4 + 9 * a_3 + 4 * a_2 + a_1
+f3 = -64 * a_4 - 27 * a_3 - 8 * a_2 - a_1
+f4 = 256 * a_4 + 81 * a_3 + 16 * a_2 + a_1
+f5 = -1024 * a_4 - 243 * a_3 - 32 * a_2 - a_1
+print(f"f1: {f1} f2: {f2} f3: {f3} f4: {f4} f5: {f5}")
