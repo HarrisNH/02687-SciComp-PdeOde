@@ -78,10 +78,17 @@ k = 2
 exact = u_dd_exact_at_0()
 print("Exact u''(0) =", exact)
 
+<<<<<<< HEAD
 num = 10
 err = np.zeros(num - 1)
 err_centered = np.zeros(num - 1)
 hvals = np.zeros(num - 1)
+=======
+num = 15
+err = np.zeros(num-1)
+err_centered = np.zeros(num-1)
+hvals = np.zeros(num-1)
+>>>>>>> 3fd7a9b (fix)
 
 i = 0
 for m in range(2, num):
@@ -104,21 +111,46 @@ for m in range(2, num):
 
 print(f"h={h: .3e}   approx={approx: .12f}   err={err[-1]: .3e}")
 
+<<<<<<< HEAD
 
+=======
+# --- reference (analytical) slopes: Ch^3 and Ch^4 ---
+>>>>>>> 3fd7a9b (fix)
 mask = np.isfinite(err) & (err > 0) & np.isfinite(hvals) & (hvals > 0)
+
+h_plot = hvals[mask]
+err_plot = err[mask]
+errc_plot = err_centered[mask]
+
+# anchor constants so the reference lines pass through the last data point (smallest h)
+C3 = err_plot[-1] / (h_plot[-1]**3)
+C4 = errc_plot[-1] / (h_plot[-1]**4)
+
+ref_h3 = C3 * h_plot**3
+ref_h4 = C4 * h_plot**4
+
 
 p = np.polyfit(np.log(hvals[mask]), np.log(err[mask]), 1)[0]
 p_cent = np.polyfit(np.log(hvals[mask]), np.log(err_centered[mask]), 1)[0]
 print("Estimated convergence rate p_non_centered =", p)
 print("Estimated convergence rate p_centered =", p_cent)
 
+<<<<<<< HEAD
 plt.loglog(hvals, err, "o-", label="not centered")
 plt.loglog(hvals, err_centered, "o-", label="centered")
+=======
+plt.figure()
+plt.loglog(h_plot, err_plot, 'o-', label='not centered')
+plt.loglog(h_plot, errc_plot, 'o-', label='centered')
+plt.loglog(h_plot, ref_h3, '--', label=r'ref: $C h^3$')
+plt.loglog(h_plot, ref_h4, '--', label=r'ref: $C h^4$')
+>>>>>>> 3fd7a9b (fix)
 plt.xlabel("h")
 plt.ylabel("error")
 plt.legend()
-plt.title("Convergence of errors with f(x) = exp(cos(x))")
-plt.savefig("img/ex3_error.png")
+plt.title(r"Convergence of $u''(0)$, $u(x)=e^{\cos x}$")
+plt.savefig("img/ex3_error.png", dpi=200, bbox_inches="tight")
+
 
 plt.plot(approx)
 plt.savefig("img/ex3_approx_func.png")
