@@ -78,17 +78,10 @@ k = 2
 exact = u_dd_exact_at_0()
 print("Exact u''(0) =", exact)
 
-<<<<<<< HEAD
 num = 10
 err = np.zeros(num - 1)
 err_centered = np.zeros(num - 1)
 hvals = np.zeros(num - 1)
-=======
-num = 15
-err = np.zeros(num-1)
-err_centered = np.zeros(num-1)
-hvals = np.zeros(num-1)
->>>>>>> 3fd7a9b (fix)
 
 i = 0
 for m in range(2, num):
