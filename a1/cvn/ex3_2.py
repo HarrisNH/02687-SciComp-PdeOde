@@ -104,11 +104,6 @@ for m in range(2, num):
 
 print(f"h={h: .3e}   approx={approx: .12f}   err={err[-1]: .3e}")
 
-<<<<<<< HEAD
-
-=======
-# --- reference (analytical) slopes: Ch^3 and Ch^4 ---
->>>>>>> 3fd7a9b (fix)
 mask = np.isfinite(err) & (err > 0) & np.isfinite(hvals) & (hvals > 0)
 
 h_plot = hvals[mask]
