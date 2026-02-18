@@ -122,17 +122,11 @@ p = np.polyfit(np.log(hvals[mask]), np.log(err[mask]), 1)[0]
 p_cent = np.polyfit(np.log(hvals[mask]), np.log(err_centered[mask]), 1)[0]
 print("Estimated convergence rate p_non_centered =", p)
 print("Estimated convergence rate p_centered =", p_cent)
-
-<<<<<<< HEAD
-plt.loglog(hvals, err, "o-", label="not centered")
-plt.loglog(hvals, err_centered, "o-", label="centered")
-=======
 plt.figure()
 plt.loglog(h_plot, err_plot, 'o-', label='not centered')
 plt.loglog(h_plot, errc_plot, 'o-', label='centered')
 plt.loglog(h_plot, ref_h3, '--', label=r'ref: $C h^3$')
 plt.loglog(h_plot, ref_h4, '--', label=r'ref: $C h^4$')
->>>>>>> 3fd7a9b (fix)
 plt.xlabel("h")
 plt.ylabel("error")
 plt.legend()
