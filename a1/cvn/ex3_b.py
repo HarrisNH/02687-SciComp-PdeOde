@@ -2,83 +2,46 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.sparse import spdiags, eye, kron
 from scipy.sparse.linalg import cg, LinearOperator
-
-# Exact solution
-def u_exact(x, y):
-    return np.sin(4 * np.pi * (x + y)) + np.cos(4 * np.pi * x * y)
-
-# derivative of u
-def f_rhs(x, y):
-    term1 = -32 * np.pi**2 * np.sin(4 * np.pi * (x + y))
-    term2 = -16 * np.pi**2 * (x**2 + y**2) * np.cos(4 * np.pi * x * y)
-    return term1 + term2
-
-def Amult(U, m):
-
-    h = (m + 1)**2
-    U_reshape = U.reshape((m, m))
-
-    AU = np.zeros_like(U_reshape)
-
-    AU = 4 * U_reshape
-
-    #neighbors 
-    AU[:-1, :] -= U_reshape[1:, :] #below
-    AU[1:, :] -= U_reshape[:-1, :] #above
-    AU[:, :-1] -= U_reshape[:, 1:] #right
-    AU[:, 1:] -= U_reshape[:, :-1] #left
-
-    AU *= 
-
-    # scaling by the factor 
-    AU *= h
-
-    return -AU.ravel()
+import ex3_a as fc
 
 
-def construct_b(m, f, u_boundary):
+def lambda_pq(omega, p, q, h):
+    ev = (1 - omega) + omega / 2 * (np.cos(p * np.pi * h) + np.cos(q * np.pi * h))
+    return ev
+
+
+def smooth(U, omega, m, F):
+    """
+    Use this smart update:
+    U^(k+1) = u^k + omega * D^-1 * R
+
+    """
     h = 1.0 / (m + 1)
-    x = np.linspace(h, 1 - h, m)
-    y = np.linspace(h, 1 - h, m)
-
-    X, Y = np.meshgrid(x,y)
-    b = f(X, Y)
-    b[0, :] -= u_boundary(x, 0)/h**2
-    b[-1, :] -= u_boundary(x, 1)/h**2
-    
-    b[:, 0] -= u_boundary(0, y)/h**2
-    b[:, -1] -= u_boundary(1, y)/h**2
-
-    return b.ravel()
+    R = F - fc.Amult(U, m)  # residual
+    Unew = U + omega * (h**2 / 4.0) * R
+    return Unew
 
 
-m = 1000
-F = construct_b(m, f_rhs, u_exact)
+def main():
+    omegas = np.linspace(0, 2, 100)
+    m_arr = np.array([5, 10, 100, 1000])
 
-Aop = LinearOperator(
-    shape=(m*m, m*m),
-    matvec=lambda U: Amult(U, m),
-    dtype=float
-)
-
-U_sol, exit_code = cg(Aop, -F, atol=1e-10)
-U_sol = U_sol.reshape((m,m))
-
-print("exit_code =", exit_code)
-print("solution =", U_sol)
-
-# Interior grid for plotting / error check
-h = 1.0 / (m + 1)
-x = np.linspace(h, 1 - h, m)
-y = np.linspace(h, 1 - h, m)
-X, Y = np.meshgrid(x, y)
+    colors = plt.cm.viridis(np.linspace(0, 1, len(m_arr)))
+    fig, ax = plt.subplots()
+    lamb_arr = np.zeros((len(omegas), len(m_arr)))
+    for i, m in enumerate(m_arr):
+        q = np.arange(m // 2 + 1, m + 1)
+        p = np.arange(m // 2 + 1, m + 1)
+        h = 1 / (m + 1)
+        P, Q = np.meshgrid(p, q, indexing="ij")
+        for j, omega in enumerate(omegas):
+            vals = lambda_pq(omega, P, Q, h)
+            lamb_arr[j, i] = np.max(np.abs(vals))
+        ax.plot(omegas, lamb_arr[:, i], color=colors[i], label=f"m ={m}")
+    ax.legend()
+    ax.set_title("Max abs high frequency eigenvalues")
+    plt.savefig("a1/cvn/ex3_b_max_ev.py")
 
 
-# Plot numerical solution
-fig = plt.figure(figsize=(8, 6))
-ax = fig.add_subplot(111, projection='3d')
-ax.plot_surface(X, Y, U_sol, cmap='viridis')
-ax.set_title("Numerical solution (5-point stencil)")
-ax.set_xlabel("x")
-ax.set_ylabel("y")
-plt.show()
+if __name__ == "__main__":
+    main()
