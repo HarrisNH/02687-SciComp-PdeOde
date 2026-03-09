@@ -7,6 +7,15 @@ from scipy.sparse.linalg import cg, LinearOperator
 def u_exact(x, y):
     return np.sin(4 * np.pi * (x + y)) + np.cos(4 * np.pi * x * y)
 
+def u_exact_grid():
+    global m
+    h = 1.0 / (m + 1)
+    x = np.linspace(h, 1 - h, m)
+    y = np.linspace(h, 1 - h, m)
+    X, Y = np.meshgrid(x, y)
+    res = u_exact(X, Y).ravel()
+    return -res
+
 # derivative of u
 def f_rhs(x, y):
     term1 = -32 * np.pi**2 * np.sin(4 * np.pi * (x + y))
@@ -17,8 +26,6 @@ def Amult(U, m):
 
     h = (m + 1)**2
     U_reshape = U.reshape((m, m))
-
-#    AU = np.zeros_like(U_reshape)
 
     AU = 4 * U_reshape.copy()
 
@@ -50,6 +57,14 @@ def construct_b(m, f, u_boundary):
     return b.ravel()
 
 
+residuals = []
+errors = []
+def residual_change(xk):
+    rk = -F - Aop.matvec(xk)
+    residuals.append(np.max(rk))
+    errors.append(np.max(u_exact_grid()-xk))
+    return residuals
+
 m = 100
 F = construct_b(m, f_rhs, u_exact)
 
@@ -59,11 +74,10 @@ Aop = LinearOperator(
     dtype=float
 )
 
-U_sol, exit_code = cg(Aop, -F, atol=1e-10)
+U_sol, exit_code = cg(Aop, -F, tol=1e-14, atol=1e-14, callback=residual_change, maxiter=10_000)
 U_sol = U_sol.reshape((m,m))
 
 print("exit_code =", exit_code)
-print("solution =", U_sol)
 
 # Interior grid for plotting / error check
 h = 1.0 / (m + 1)
@@ -79,4 +93,23 @@ ax.plot_surface(X, Y, U_sol, cmap='viridis')
 ax.set_title("Numerical solution (5-point stencil)")
 ax.set_xlabel("x")
 ax.set_ylabel("y")
-plt.show()
+plt.savefig("img/ex3_a_solution.png")
+
+# --- Residual log-log analysis ---
+residuals = np.array(residuals)
+iters = np.arange(1, len(residuals) + 1)
+
+p_res = np.polyfit(np.log(iters), np.log(residuals), 1)[0]
+print("slope residual ~", p_res)
+
+plt.figure(figsize=(8, 6))
+plt.loglog(iters, residuals, "o-", label="CG residual")
+plt.loglog(iters, errors, "o-", label="CG errors")
+plt.loglog(iters, residuals[0] * (iters / iters[0])**p_res, "--",
+           label=fr"ref slope {p_res:.2f}")
+
+plt.xlabel("iteration")
+plt.ylabel("residual")
+plt.legend()
+plt.grid(True, which="both", linestyle="--", alpha=0.6)
+plt.savefig("img/ex3_a_error.png")
