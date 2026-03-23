@@ -40,7 +40,7 @@ def main():
         ax.plot(omegas, lamb_arr[:, i], color=colors[i], label=f"m ={m}")
     ax.legend()
     ax.set_title("Max abs high frequency eigenvalues")
-    plt.savefig("a1/cvn/ex3_b_max_ev.py")
+    plt.savefig("a1/cvn/img/ex3_b_max_ev.py")
 
 
 if __name__ == "__main__":

@@ -24,7 +24,8 @@ def f_rhs(x, y):
 
 def Amult(U, m):
 
-    h = (m + 1)**2
+    h = 1/(m+1)
+
     U_reshape = U.reshape((m, m))
 
     AU = 4 * U_reshape.copy()
@@ -35,8 +36,8 @@ def Amult(U, m):
     AU[:, :-1] -= U_reshape[:, 1:] #right
     AU[:, 1:] -= U_reshape[:, :-1] #left
 
-    # scaling by the factor 
-    AU *= h
+    # scaling factor 
+    AU *= 1/h**2
 
     return -AU.ravel()
 
@@ -74,42 +75,39 @@ Aop = LinearOperator(
     dtype=float
 )
 
-U_sol, exit_code = cg(Aop, -F, tol=1e-14, atol=1e-14, callback=residual_change, maxiter=10_000)
-U_sol = U_sol.reshape((m,m))
+if __name__ == "__main__":
+    U_sol, exit_code = cg(Aop, -F, tol=1e-14, atol=1e-14, callback=residual_change, maxiter=10_000)
+    U_sol = U_sol.reshape((m,m))
 
-print("exit_code =", exit_code)
+    print("exit_code =", exit_code)
 
-# Interior grid for plotting / error check
-h = 1.0 / (m + 1)
-x = np.linspace(h, 1 - h, m)
-y = np.linspace(h, 1 - h, m)
-X, Y = np.meshgrid(x, y)
+    # Interior grid for plotting / error check
+    h = 1.0 / (m + 1)
+    x = np.linspace(h, 1 - h, m)
+    y = np.linspace(h, 1 - h, m)
+    X, Y = np.meshgrid(x, y)
 
 
-# Plot numerical solution
-fig = plt.figure(figsize=(8, 6))
-ax = fig.add_subplot(111, projection='3d')
-ax.plot_surface(X, Y, U_sol, cmap='viridis')
-ax.set_title("Numerical solution (5-point stencil)")
-ax.set_xlabel("x")
-ax.set_ylabel("y")
-plt.savefig("img/ex3_a_solution.png")
+    # Plot numerical solution
+    fig = plt.figure(figsize=(8, 6))
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot_surface(X, Y, U_sol, cmap='viridis')
+    ax.set_title("Numerical solution (5-point stencil)")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    plt.savefig("img/ex3_a_solution.png")
 
-# --- Residual log-log analysis ---
-residuals = np.array(residuals)
-iters = np.arange(1, len(residuals) + 1)
+    # --- Residual log-log analysis ---
+    residuals = np.array(residuals)
+    iters = np.arange(1, len(residuals) + 1)
 
-p_res = np.polyfit(np.log(iters), np.log(residuals), 1)[0]
-print("slope residual ~", p_res)
+    plt.figure(figsize=(8, 6))
+    plt.loglog(iters, residuals, "o-", label="CG residual")
+    plt.loglog(iters, errors, "o-", label="CG errors")
 
-plt.figure(figsize=(8, 6))
-plt.loglog(iters, residuals, "o-", label="CG residual")
-plt.loglog(iters, errors, "o-", label="CG errors")
-plt.loglog(iters, residuals[0] * (iters / iters[0])**p_res, "--",
-           label=fr"ref slope {p_res:.2f}")
 
-plt.xlabel("iteration")
-plt.ylabel("residual")
-plt.legend()
-plt.grid(True, which="both", linestyle="--", alpha=0.6)
-plt.savefig("img/ex3_a_error.png")
+    plt.xlabel("iteration")
+    plt.ylabel("residual")
+    plt.legend()
+    plt.grid(True, which="both", linestyle="--", alpha=0.6)
+    plt.savefig("img/ex3_a_error.png")
