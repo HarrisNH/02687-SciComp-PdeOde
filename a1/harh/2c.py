@@ -198,6 +198,8 @@ t_start, t_end = 0, 1
 convergence_plotter(
     m0, levels, t_start, t_end, find_u_5, u_exact, plt_show=False, plt_title="5_stencil"
 )
+
+
 convergence_plotter(
     m0,
     levels,

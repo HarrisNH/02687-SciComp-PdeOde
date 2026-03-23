@@ -13,11 +13,11 @@ def lambda_pq(omega, p, q, h):
 def smooth(U, omega, m, F):
     """
     Use this smart update:
-    U^(k+1) = u^k + omega * D^-1 * R
-
+    U^(k+1) = u^k + omega * D^-1 * R^k, R^k = F-AU^k
+    Diagonal positive bcs Amult return negative AU
     """
     h = 1.0 / (m + 1)
-    R = F - fc.Amult(U, m)  # residual
+    R = F - fc.Amult(U, m)  # Amult(U, m) = -AU^k
     Unew = U + omega * (h**2 / 4.0) * R
     return Unew
 
@@ -39,8 +39,10 @@ def main():
             lamb_arr[j, i] = np.max(np.abs(vals))
         ax.plot(omegas, lamb_arr[:, i], color=colors[i], label=f"m ={m}")
     ax.legend()
+    ax.set_xlabel("omega")
+    ax.set_ylabel("max abs eigenvalue")
     ax.set_title("Max abs high frequency eigenvalues")
-    plt.savefig("a1/cvn/ex3_b_max_ev.py")
+    plt.savefig("a1/cvn/ex3_b_max_ev.png")
 
 
 if __name__ == "__main__":

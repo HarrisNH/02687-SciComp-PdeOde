@@ -81,9 +81,10 @@ grid = np.linspace(t0, T, m + 2)  # endpoints included
 A, b = create_system(eps, grid)
 u = np.linalg.solve(A, b)
 
-# plt.plot(grid, u, label="numerical")
-# plt.plot(grid, np.sin(grid), "--", label="exact sin(x)")
-# plt.legend()
+plt.plot(grid, u, label="numerical")
+plt.plot(grid, np.sin(grid), "--", label="exact sin(x)")
+plt.legend()
+plt.savefig("a1/harh/u_exact.png")
 # plt.show()
 
 ##### ABOVE THIS LINE SOLVES THE LINEAR PART using sin(x) as the manufactured solution
@@ -203,7 +204,7 @@ bc_left = -1.0
 bc_right = 1.5
 u_num = newton_solve(x, eps, bc_left=bc_left, bc_right=bc_right)
 # u_ex  = np.sin(x)
-
+plt.clf()
 plt.plot(x, u_num, label="Newton (MMS)")
 # plt.plot(x, u_ex, "--", label="exact sin(x)")
 plt.xlabel("x")
