@@ -1,9 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.sparse.linalg import spsolve
-from scipy.sparse import diags
-import ex3_a as fcb
-import ex3_b as fca
+from scipy.sparse.linalg import cg, LinearOperator
+from scipy.sparse import diags, eye, kron
+import ex3_a as fca
+import ex3_b as fcb
 
 
 def coarsen(R, m):
@@ -83,26 +84,66 @@ def build_A_1d(m):
 
 
 def main():
-
-    m = 63   # choose m = 2^k - 1
-    omega = 2 / 3
-
-    # Right-hand side and exact solution from ex3_a
-    F = fcb.construct_b(m, fcb.f_rhs, fcb.u_exact)
-
+    m = 63
     h = 1.0 / (m + 1)
+
     x = np.linspace(h, 1 - h, m)
     y = np.linspace(h, 1 - h, m)
     X, Y = np.meshgrid(x, y)
-    Uhat = fcb.u_exact(X, Y).ravel()
 
-    # Initial guess
+    # exact solution on grid
+    Uhat = fca.u_exact(X, Y)
+
+    # 1D second-difference matrix
+    A1 = diags(
+        diagonals=[np.ones(m - 1), -2 * np.ones(m), np.ones(m - 1)],
+        offsets=[-1, 0, 1],
+        shape=(m, m),
+        format="csr"
+    ) / h**2
+
+    I = eye(m, format="csr")
+
+    # 2D Laplacian
+    A = kron(I, A1) + kron(A1, I)
+
+    # RHS
+    F = fca.construct_b(m, fca.f_rhs, fca.u_exact)
+
+    # reference discrete solution
+    U_vec = spsolve(A, F)
+    U = U_vec.reshape((m, m))
+    Ehat = U - Uhat
+
+    # initial guess must stay flat
     U2 = np.zeros(m * m)
 
-    # Pre-smoothing
-    for _ in range(10):
-        U2 = fca.smooth(U2, omega, m, F)
-    
+    omega = 2 / 3
+
+    plt.ion()
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+    for i in range(15):
+        U2 = fcb.smooth(U2, omega, m, F)   # keep flat
+        U2_grid = U2.reshape((m, m))
+        E2 = U2_grid - Uhat
+
+        axes[0].cla()
+        im0 = axes[0].imshow(U2_grid, origin="lower", extent=[h, 1-h, h, 1-h])
+        axes[0].set_title(f"Iter={i+1:4d} solution")
+        axes[0].set_xlabel("x")
+        axes[0].set_ylabel("y")
+
+        axes[1].cla()
+        im1 = axes[1].imshow(E2, origin="lower", extent=[h, 1-h, h, 1-h])
+        axes[1].set_title(f"Iter={i+1:4d} error")
+        axes[1].set_xlabel("x")
+        axes[1].set_ylabel("y")
+
+        fig.patch.set_facecolor("white")
+        plt.tight_layout()
+        plt.pause(1)
+
     # ex3_a.Amult(U,m) computes -A U so residual is F + Amult(U,m)
     r = F + fcb.Amult(U2, m)
 
@@ -112,11 +153,17 @@ def main():
 
     # Coarse-grid solve A_c e_c = -r_c , note negative r_c because Amult uses -A
     # We build 2D Poisson matrix A_c explicitly here
-    e1 = np.ones(mc)
-    T = diags([e1, -2 * e1, e1], offsets=[-1, 0, 1], shape=(mc, mc), format="csr")
-    I = diags([np.ones(mc)], [0], shape=(mc, mc), format="csr")
-    h_c = 1.0 / (mc + 1)
-    A_c = -(np.kron(np.eye(mc), T.toarray()) + np.kron(T.toarray(), np.eye(mc))) / h_c**2
+    # 1D second-difference matrix
+    A_sparse = diags(
+        diagonals=[np.ones(m - 1), -2 * np.ones(m), np.ones(m - 1)],
+        offsets=[-1, 0, 1],
+        shape=(m, m),
+        format="csr"
+    ) / h_coarse**2
+
+    # 2D Laplacian
+    A_c = kron(I, A_sparse) + kron(A_sparse, I)
+
 
     e_c = np.linalg.solve(A_c, -rc)
 
