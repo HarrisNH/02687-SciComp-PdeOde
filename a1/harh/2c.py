@@ -103,7 +103,7 @@ def u_exact(x, y):
     return np.sin(4 * np.pi * (x + y)) + np.cos(4 * np.pi * x * y)
 
 
-def convergence_plotter(
+def convergence_plotter_2d(
     m0,
     levels,
     t_start,
@@ -141,7 +141,8 @@ def convergence_plotter(
 
         if i != 0:
             if exact_flag == 0:
-                d_arr[i - 1] = np.linalg.norm(u_i[::2] - u_prev, ord=np.inf)
+                u_fine_2d = u_i.reshape((m, m))[1::2, 1::2].ravel(order="C")  # Take every second point in each direction
+                d_arr[i - 1] = np.linalg.norm(u_fine_2d - u_prev, ord=np.inf)
             else:
                 d_arr[i - 1] = np.linalg.norm(
                     u_i - exact_u_func(X_int_1d, Y_int_1d), ord=np.inf
@@ -192,22 +193,40 @@ def find_u_9(m, x, y):
     return u
 
 
-m0 = 3
-levels = 7
+m0 = 4
+levels = 6
 t_start, t_end = 0, 1
-convergence_plotter(
-    m0, levels, t_start, t_end, find_u_5, u_exact, plt_show=False, plt_title="5_stencil"
+convergence_plotter_2d(
+    m0, levels, t_start, t_end, find_u_5, u_exact, plt_show=False, plt_title="5_stencil_exact_error"
+)
+
+#Now solve actual problem
+convergence_plotter_2d(
+    m0, levels, t_start, t_end, find_u_5, plt_show=False, plt_title="5_stencil_successive_diff"
 )
 
 
-convergence_plotter(
+#9 stencil MMS
+convergence_plotter_2d(
     m0,
     levels,
     t_start,
     t_end,
     find_u_9,
     u_exact,
-    plt_show=True,
-    plt_title="9_stencil",
+    plt_show=False,
+    plt_title="9_stencil_exact_error",
+    exact=4,
+)
+
+#Now solve actual problem
+convergence_plotter_2d(
+    m0,
+    levels,
+    t_start,
+    t_end,
+    find_u_9,
+    plt_show=False,
+    plt_title="9_stencil_successive_diff",
     exact=4,
 )
