@@ -41,7 +41,7 @@ def Amult(U, m):
     # scaling factor 
     AU *= 1/h**2
 
-    return -AU.ravel()
+    return AU.ravel()
 
 
 def construct_b(m, f, u_boundary):
@@ -74,7 +74,7 @@ F = construct_b(m, f_rhs, u_exact)
 Aop = LinearOperator(shape=(m * m, m * m), matvec=lambda U: Amult(U, m), dtype=float)
 
 if __name__ == "__main__":
-    U_sol, exit_code = cg(Aop, -F, tol=1e-14, atol=1e-14, callback=residual_change, maxiter=10_000)
+    U_sol, exit_code = cg(-Aop, -F, tol=1e-14, atol=1e-14, callback=residual_change, maxiter=10_000)
     U_sol = U_sol.reshape((m,m))
 
     print("exit_code =", exit_code)
