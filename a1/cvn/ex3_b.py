@@ -14,7 +14,6 @@ def smooth(U, omega, m, F):
     """
     Use this smart update:
     U^(k+1) = u^k + omega * D^-1 * R^k, R^k = F-AU^k
-    Diagonal positive bcs Amult return negative AU
     """
     h = 1.0 / (m + 1)
     R = F - fc.Amult(U, m)  # Amult(U, m) = -AU^k
