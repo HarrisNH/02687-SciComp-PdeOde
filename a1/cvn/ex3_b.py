@@ -17,8 +17,10 @@ def smooth(U, omega, m, F):
     """
     h = 1.0 / (m + 1)
     R = F - fc.Amult(U, m)  # Amult(U, m) = -AU^k
-    Unew = U + omega * (h**2 / 4.0) * R
+    Unew = U - omega * (h**2 / 4.0) * R
     return Unew
+
+
 
 
 def main():

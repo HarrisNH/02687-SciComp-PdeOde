@@ -1,21 +1,53 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.sparse.linalg import spsolve
-from scipy.sparse.linalg import cg, LinearOperator
 from scipy.sparse import diags, eye, kron
-import ex3_a as fca
-import ex3_b as fcb
+from scipy.sparse.linalg import spsolve
+import ex3_a as fc_a
+import ex3_b as fc_b
 
+
+# ============================================================
+# Fine-grid operator and smoother
+# ============================================================
+
+
+def build_laplacian_2d(m):
+    """
+    Build the sparse matrix for the 2D discrete Laplacian Δ_h.
+    """
+    h = 1.0 / (m + 1)
+
+    T = diags(
+        [np.ones(m - 1), -2 * np.ones(m), np.ones(m - 1)],
+        [-1, 0, 1],
+        shape=(m, m),
+        format="csr"
+    ) / h**2
+
+    I = eye(m, format="csr")
+    A = kron(I, T) + kron(T, I)
+    return A
+
+
+# ============================================================
+# Transfer operators
+# ============================================================
 
 def coarsen(R, m):
+    """
+    Restriction by injection.
 
-    assert (m - 1) % 2 == 0, "Need m = 2^k - 1 so that mc = (m-1)//2 is integer."
+    Fine grid has m x m interior points, with m = 2^k - 1.
+    Coarse grid has mc x mc interior points, mc = (m-1)//2.
+    """
+    if (m - 1) % 2 != 0:
+        raise ValueError("Need m = 2^k - 1.")
 
     mc = (m - 1) // 2
-    R2 = R.reshape((m, m))
+    Rf = R.reshape((m, m))
 
-    # Fine odd/odd points -> coarse grid
-    Rc = R2[1::2, 1::2]
+    # coarse nodes coincide with odd/odd fine indices
+    Rc = Rf[1::2, 1::2]
 
     assert Rc.shape == (mc, mc)
     return Rc.ravel()
@@ -72,131 +104,130 @@ def interpolate(Rc, m):
     return R.ravel()
 
 
-def build_A_1d(m):
-    h = 1.0 / (m + 1)
-    A = diags(
-        diagonals=[np.ones(m - 1), -2 * np.ones(m), np.ones(m - 1)],
-        offsets=[-1, 0, 1],
-        shape=(m, m),
-        format="csr"
-    ) / h**2
-    return A
+# ============================================================
+# Two-grid cycle
+# ============================================================
 
+def two_grid_cycle(U, m, F, omega=2/3, nu1=3, nu2=3):
+    """
+    One 2-grid correction step:
+      pre-smooth
+      restrict residual
+      solve coarse error equation
+      prolong correction
+      correct
+      post-smooth
+    """
+    # pre-smoothing
+    for _ in range(nu1):
+        U = fc_b.smooth(U, omega, m, F)
+
+    # fine-grid residual: r = F - Δ_h U
+    r = F - fc_a.Amult(U, m)
+
+    # restrict to coarse grid
+    mc = (m - 1) // 2
+    rc = coarsen(r, m)
+
+    # coarse-grid solve: Δ_{2h} e_c = r_c
+    A_c = build_laplacian_2d(mc)
+    e_c = spsolve(A_c, rc)
+
+    # prolongate and correct
+    e = interpolate(e_c, m)
+    U = U + e
+
+    # post-smoothing
+    for _ in range(nu2):
+        U = fc_b.smooth(U, omega, m, F)
+
+    return U
+
+
+# ============================================================
+# Driver
+# ============================================================
 
 def main():
-    m = 63
-    h = 1.0 / (m + 1)
+    m = 63                  # must be 2^k - 1
+    omega = 2 / 3
+    n_cycles = 12
+    nu1 = 3
+    nu2 = 3
 
+    h = 1.0 / (m + 1)
     x = np.linspace(h, 1 - h, m)
     y = np.linspace(h, 1 - h, m)
     X, Y = np.meshgrid(x, y)
 
-    # exact solution on grid
-    Uhat = fca.u_exact(X, Y)
-
-    # 1D second-difference matrix
-    A1 = diags(
-        diagonals=[np.ones(m - 1), -2 * np.ones(m), np.ones(m - 1)],
-        offsets=[-1, 0, 1],
-        shape=(m, m),
-        format="csr"
-    ) / h**2
-
-    I = eye(m, format="csr")
-
-    # 2D Laplacian
-    A = kron(I, A1) + kron(A1, I)
-
-    # RHS
-    F = fca.construct_b(m, fca.f_rhs, fca.u_exact)
+    U_exact = fc_a.u_exact(X, Y).ravel()
+    F = fc_a.construct_b(m, fc_a.f_rhs, fc_a.u_exact)
 
     # reference discrete solution
-    U_vec = spsolve(A, F)
-    U = U_vec.reshape((m, m))
-    Ehat = U - Uhat
+    A = build_laplacian_2d(m)
+    U_ref = spsolve(A, F)
 
-    # initial guess must stay flat
-    U2 = np.zeros(m * m)
+    # initial guess
+    U = np.zeros(m * m)
 
-    omega = 2 / 3
+    residual_history = []
+    error_to_discrete_history = []
 
-    plt.ion()
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    for k in range(n_cycles):
+        U = two_grid_cycle(U, m, F, omega=omega, nu1=nu1, nu2=nu2)
 
-    for i in range(15):
-        U2 = fcb.smooth(U2, omega, m, F)   # keep flat
-        U2_grid = U2.reshape((m, m))
-        E2 = U2_grid - Uhat
+        r = F - fc_a.Amult(U, m)
+        residual_norm = np.linalg.norm(r)
+        discrete_error_norm = np.linalg.norm(U - U_ref)
 
-        axes[0].cla()
-        im0 = axes[0].imshow(U2_grid, origin="lower", extent=[h, 1-h, h, 1-h])
-        axes[0].set_title(f"Iter={i+1:4d} solution")
-        axes[0].set_xlabel("x")
-        axes[0].set_ylabel("y")
+        residual_history.append(residual_norm)
+        error_to_discrete_history.append(discrete_error_norm)
 
-        axes[1].cla()
-        im1 = axes[1].imshow(E2, origin="lower", extent=[h, 1-h, h, 1-h])
-        axes[1].set_title(f"Iter={i+1:4d} error")
-        axes[1].set_xlabel("x")
-        axes[1].set_ylabel("y")
+        print(
+            f"cycle {k+1:2d}: "
+            f"||r||_2 = {residual_norm:.4e}, "
+            f"||U-U_ref||_2 = {discrete_error_norm:.4e}"
+        )
 
-        fig.patch.set_facecolor("white")
-        plt.tight_layout()
-        plt.pause(1)
+    # reshape for plots
+    U_grid = U.reshape((m, m))
+    U_ref_grid = U_ref.reshape((m, m))
+    U_exact_grid = U_exact.reshape((m, m))
+    E_grid = U_grid - U_exact_grid
 
-    # ex3_a.Amult(U,m) computes -A U so residual is F + Amult(U,m)
-    r = F + fcb.Amult(U2, m)
+    # --------------------------------------------------------
+    # plots
+    # --------------------------------------------------------
+    fig = plt.figure(figsize=(15, 4.5))
 
-    # Restrict residual to coarse grid
-    rc = coarsen(r, m)
-    mc = (m - 1) // 2
-
-    # Coarse-grid solve A_c e_c = -r_c , note negative r_c because Amult uses -A
-    # We build 2D Poisson matrix A_c explicitly here
-    # 1D second-difference matrix
-    A_sparse = diags(
-        diagonals=[np.ones(m - 1), -2 * np.ones(m), np.ones(m - 1)],
-        offsets=[-1, 0, 1],
-        shape=(m, m),
-        format="csr"
-    ) / h_coarse**2
-
-    # 2D Laplacian
-    A_c = kron(I, A_sparse) + kron(A_sparse, I)
-
-
-    e_c = np.linalg.solve(A_c, -rc)
-
-    # Interpolate correction back to fine grid
-    e = interpolate(e_c, m)
-
-    # Correct
-    U2 = U2 - e
-
-    # Post-smoothing
-    for _ in range(10):
-        U2 = fca.smooth(U2, omega, m, F)
-
-    # Plot final solution and error
-    U2_grid = U2.reshape((m, m))
-    E2_grid = (U2 - Uhat).reshape((m, m))
-
-    fig = plt.figure(figsize=(12, 5))
-
-    ax1 = fig.add_subplot(1, 2, 1, projection='3d')
-    ax1.plot_surface(X, Y, U2_grid, cmap='viridis')
-    ax1.set_title("Multigrid corrected solution")
+    ax1 = fig.add_subplot(1, 3, 1, projection="3d")
+    ax1.plot_surface(X, Y, U_grid, cmap="viridis")
+    ax1.set_title("2-grid solution")
     ax1.set_xlabel("x")
     ax1.set_ylabel("y")
 
-    ax2 = fig.add_subplot(1, 2, 2, projection='3d')
-    ax2.plot_surface(X, Y, E2_grid, cmap='viridis')
-    ax2.set_title("Error after coarse-grid correction")
+    ax2 = fig.add_subplot(1, 3, 2, projection="3d")
+    ax2.plot_surface(X, Y, E_grid, cmap="viridis")
+    ax2.set_title("Error vs exact solution")
     ax2.set_xlabel("x")
     ax2.set_ylabel("y")
 
+    ax3 = fig.add_subplot(1, 3, 3)
+    ax3.semilogy(residual_history, "o-", label=r"$\|r_k\|_2$")
+    ax3.semilogy(error_to_discrete_history, "s-", label=r"$\|U_k-U_{\mathrm{ref}}\|_2$")
+    ax3.set_title("Convergence history")
+    ax3.set_xlabel("2-grid cycle")
+    ax3.legend()
+    ax3.grid(True)
+
     plt.tight_layout()
     plt.show()
+
+    # optional comparison print
+    print("\nFinal norms:")
+    print(f"||U - U_ref||_2   = {np.linalg.norm(U - U_ref):.6e}")
+    print(f"||U - U_exact||_2 = {np.linalg.norm(U - U_exact):.6e}")
+    print("Note: the exact-solution error does not go to zero because of discretization error.")
 
 
 if __name__ == "__main__":
