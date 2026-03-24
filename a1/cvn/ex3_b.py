@@ -16,8 +16,8 @@ def smooth(U, omega, m, F):
     U^(k+1) = u^k + omega * D^-1 * R^k, R^k = F-AU^k
     """
     h = 1.0 / (m + 1)
-    R = F - fc.Amult(U, m)  # Amult(U, m) = -AU^k
-    Unew = U - omega * (h**2 / 4.0) * R
+    R = F - fc.Amult(U, m)  # Amult(U, m) = AU^k
+    Unew = U + omega * (h**2 / 4.0) * R
     return Unew
 
 
