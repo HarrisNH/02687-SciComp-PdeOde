@@ -60,46 +60,27 @@ def interpolate(Rc, m):
     mc = (m - 1) // 2
     Rc2 = Rc.reshape((mc, mc))
 
+    # Bilinear interpolation with zero Dirichlet boundary extension.
+    # This keeps the 1/2 and 1/4 weights near the boundary instead of
+    # renormalizing by the number of available neighbors.
+    C = np.zeros((mc + 2, mc + 2))
+    C[1:-1, 1:-1] = Rc2
+
     R = np.zeros((m, m))
-    
+
+    # coarse nodes map to fine odd/odd points
     R[1::2, 1::2] = Rc2
 
-    # Fill odd/even indices by horizontal averaging with i odd, j even
-    for i in range(1, m, 2):
-        for j in range(0, m, 2):
-            vals = []
-            if j - 1 >= 0:
-                vals.append(R[i, j - 1])
-            if j + 1 < m:
-                vals.append(R[i, j + 1])
-            if vals:
-                R[i, j] = sum(vals) / len(vals)
+    # points halfway in x, on coarse y-lines
+    R[0::2, 1::2] = 0.5 * (C[:-1, 1:-1] + C[1:, 1:-1])
 
-    # Fill even/odd indices by vertical averaging with i even, j odd
-    for i in range(0, m, 2):
-        for j in range(1, m, 2):
-            vals = []
-            if i - 1 >= 0:
-                vals.append(R[i - 1, j])
-            if i + 1 < m:
-                vals.append(R[i + 1, j])
-            if vals:
-                R[i, j] = sum(vals) / len(vals)
+    # points halfway in y, on coarse x-lines
+    R[1::2, 0::2] = 0.5 * (C[1:-1, :-1] + C[1:-1, 1:])
 
-    # Fill even/even indices by averaging the four diagonal neighbors with i even, j even
-    for i in range(0, m, 2):
-        for j in range(0, m, 2):
-            vals = []
-            if i - 1 >= 0 and j - 1 >= 0:
-                vals.append(R[i - 1, j - 1])
-            if i - 1 >= 0 and j + 1 < m:
-                vals.append(R[i - 1, j + 1])
-            if i + 1 < m and j - 1 >= 0:
-                vals.append(R[i + 1, j - 1])
-            if i + 1 < m and j + 1 < m:
-                vals.append(R[i + 1, j + 1])
-            if vals:
-                R[i, j] = sum(vals) / len(vals)
+    # cell centers
+    R[0::2, 0::2] = 0.25 * (
+        C[:-1, :-1] + C[:-1, 1:] + C[1:, :-1] + C[1:, 1:]
+    )
 
     return R.ravel()
 
@@ -120,10 +101,10 @@ def two_grid_cycle(U, m, F, omega=2/3, nu1=3, nu2=3):
     """
     # pre-smoothing
     for _ in range(nu1):
-        U = fc_b.smooth(U, omega, m, -F)
+        U = fc_b.smooth(U, omega, m, F)
 
     # fine-grid residual: r = F - Δ_h U
-    r = F - (-fc_a.Amult(U, m))
+    r = F - fc_a.Amult(U, m)
 
     # restrict to coarse grid
     mc = (m - 1) // 2

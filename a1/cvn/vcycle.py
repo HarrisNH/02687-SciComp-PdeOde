@@ -19,7 +19,7 @@ def main():
     omega = 2.0 / 3.0       # example value; set this as needed
 
     for i in range(1, 101):
-        R = F + Amult(U, m)
+        R = F - Amult(U, m)
         rel_resid = np.linalg.norm(R, 2) / np.linalg.norm(F, 2)
         print(f"*** Outer iteration: {i:3d}, rel. resid.: {rel_resid:e}")
 
@@ -57,7 +57,7 @@ def Vcycle(U, omega, nsmooth, m, F):
 
         # 4. recurse to Vcycle on a coarser grid
         mc = (m - 1) // 2
-        Ecoarse = Vcycle(np.zeros(mc * mc), omega, nsmooth, mc, -Rcoarse)
+        Ecoarse = Vcycle(np.zeros(mc * mc), omega, nsmooth, mc, Rcoarse)
 
         # 5. TODO: interpolate the error
 

@@ -15,7 +15,7 @@ def u_exact_grid():
     y = np.linspace(h, 1 - h, m)
     X, Y = np.meshgrid(x, y)
     res = u_exact(X, Y).ravel()
-    return -res
+    return res
 
 # double derivative of u
 def f_rhs(x, y):
@@ -30,13 +30,13 @@ def Amult(U, m):
 
     U_reshape = U.reshape((m, m))
 
-    AU = 4 * U_reshape.copy()
+    AU = -4 * U_reshape.copy()
 
     # neighbors
-    AU[:-1, :] -= U_reshape[1:, :]  # below
-    AU[1:, :] -= U_reshape[:-1, :]  # above
-    AU[:, :-1] -= U_reshape[:, 1:]  # right
-    AU[:, 1:] -= U_reshape[:, :-1]  # left
+    AU[:-1, :] += U_reshape[1:, :]  # below
+    AU[1:, :] += U_reshape[:-1, :]  # above
+    AU[:, :-1] += U_reshape[:, 1:]  # right
+    AU[:, 1:] += U_reshape[:, :-1]  # left
 
     # scaling factor 
     AU *= 1/h**2
@@ -63,9 +63,9 @@ def construct_b(m, f, u_boundary):
 residuals = []
 errors = []
 def residual_change(xk):
-    rk = -F - Aop.matvec(xk)
-    residuals.append(np.max(rk))
-    errors.append(np.max(u_exact_grid()-xk))
+    rk = F - Aop.matvec(xk)
+    residuals.append(np.linalg.norm(rk))
+    errors.append(np.max(np.abs(u_exact_grid() - xk)))
     return residuals
 
 m = 100
