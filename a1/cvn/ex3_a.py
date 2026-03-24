@@ -17,7 +17,7 @@ def u_exact_grid():
     res = u_exact(X, Y).ravel()
     return -res
 
-# derivative of u
+# double derivative of u
 def f_rhs(x, y):
     term1 = -32 * np.pi**2 * np.sin(4 * np.pi * (x + y))
     term2 = -16 * np.pi**2 * (x**2 + y**2) * np.cos(4 * np.pi * x * y)
@@ -74,7 +74,7 @@ F = construct_b(m, f_rhs, u_exact)
 Aop = LinearOperator(shape=(m * m, m * m), matvec=lambda U: Amult(U, m), dtype=float)
 
 if __name__ == "__main__":
-    U_sol, exit_code = cg(-Aop, -F, tol=1e-14, atol=1e-14, callback=residual_change, maxiter=10_000)
+    U_sol, exit_code = cg(-Aop, -F, rtol=1e-14, atol=1e-14, callback=residual_change, maxiter=10_000)
     U_sol = U_sol.reshape((m,m))
 
     print("exit_code =", exit_code)
