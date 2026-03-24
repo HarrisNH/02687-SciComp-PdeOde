@@ -120,10 +120,10 @@ def two_grid_cycle(U, m, F, omega=2/3, nu1=3, nu2=3):
     """
     # pre-smoothing
     for _ in range(nu1):
-        U = fc_b.smooth(U, omega, m, F)
+        U = fc_b.smooth(U, omega, m, -F)
 
     # fine-grid residual: r = F - Δ_h U
-    r = F - fc_a.Amult(U, m)
+    r = F - (-fc_a.Amult(U, m))
 
     # restrict to coarse grid
     mc = (m - 1) // 2
@@ -159,7 +159,15 @@ def main():
     x = np.linspace(h, 1 - h, m)
     y = np.linspace(h, 1 - h, m)
     X, Y = np.meshgrid(x, y)
-
+    
+    fig = plt.figure(figsize=(8, 6))
+    ax = fig.add_subplot(111, projection='3d')
+    ax.plot_surface(X, Y, fc_a.u_exact(X, Y), cmap='viridis')
+    ax.set_title("Numerical solution (5-point stencil)")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    plt.show()
+    
     U_exact = fc_a.u_exact(X, Y).ravel()
     F = fc_a.construct_b(m, fc_a.f_rhs, fc_a.u_exact)
 
