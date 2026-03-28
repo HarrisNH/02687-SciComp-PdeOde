@@ -12,7 +12,6 @@ def lambda_pq(omega, p, q, h):
 
 def smooth(U, omega, m, F):
     """
-    Use this smart update:
     U^(k+1) = u^k + omega * D^-1 * R^k, R^k = F-AU^k
     """
     h = 1.0 / (m + 1)
