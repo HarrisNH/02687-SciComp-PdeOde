@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from ex1_c import fdcoeffF
+from ex3_2 import fdcoeffF
 
 def u(x):
     return np.exp(np.cos(x))
@@ -12,7 +12,7 @@ if __name__ == "__main__":
     # point of the stencil center around zero
     xbar = 1
     k = 1
-    # Evaluating true functional value
+    #evaluating true functional value
     exact = u_x(xbar)
     # creating a sequence for convergence with h_i = 1/2^h
     s_vals = np.arange(2, 6)  
@@ -71,4 +71,4 @@ if __name__ == "__main__":
     plt.legend()
     plt.title(r"Convergence of $u'(0)$, $u(x)=e^{\cos x}$")
     plt.tight_layout()
-    plt.show()
+    plt.savefig("ex3_g_error.png", dpi=200)
