@@ -62,7 +62,7 @@ def rk23_adaptive(f, t0, tf, y0, rtol=1e-3, atol=1e-6, h0=None):
 
 # Problem setup
 N = 100
-delta = 0.000001
+delta = 0.0001
 
 def f(t, y):
     return y**2 - y**3
