@@ -68,7 +68,7 @@ def convergence_study(T_final=0.2):
               f"{np.log2(errs_b[i-1]/errs_b[i]):.3f}")
 
     print("\n" + "=" * 65)
-    print("FTCS convergence  (expect blow-up / garbage errors)")
+    print("FTCS convergence")
     print(f"{'N':>5} {'h':>10} {'c_r':>8} {'M':>8} {'L_inf error':>14}")
     print("-" * 55)
 
@@ -104,8 +104,8 @@ def period_analysis(cr=CR_TARGET, pts_per_wavelength=100, n_periods=40):
     N    = pts_per_wavelength    # number of grid points (one wavelength)
     dt   = cr * dx / A      # time step from CFL
     T    = n_periods * lam / A   # total time
-    M    = int(round(T / dt)) # exact number of steps
-    dt   = T / M       # adjust to hit T exactly
+    M    = int(round(T / dt)) # exact number of step
+    dt   = T / M       # adjust to hit T exatly
     cr_actual = A * dt / dx
 
     # ── Von Neumann prediction for xi = 2*pi*dx (the resolved wavenumber) ──
@@ -179,15 +179,15 @@ def main():
     u_c_clipped = np.clip(u_c, -5, 5)
     ax3.plot(x_c, u_exact(x_c, T_final), "k-",  lw=1.5, label="Exact")
     ax3.plot(x_c, u_c_clipped,           "r--", lw=1.2,
-             label=f"FTCS  N={N_plot} (clipped)")
+             label=f"FTCS  N={N_plot}")
     ax3.set_xlabel("$x$"); ax3.set_ylabel("$u$")
-    ax3.set_title(f"FTCS solution at $T={T_final}$ — unstable!")
+    ax3.set_title(f"FTCS solution at $T={T_final}$ — unstable")
     ax3.legend(); ax3.grid(True, ls=":", alpha=0.6); ax3.set_ylim(-1.5, 1.5)
 
     fig1.tight_layout()
     fig1.savefig("ftbs_ftcs_compare.png", dpi=130)
 
-    # ── Figure 2: Von Neumann — |g| and phase speed vs wavenumber ────────────
+
     xi, g_mod, phi_num, phi_ex = von_neumann_analysis(CR_TARGET)
 
     fig2, (ax_a, ax_p) = plt.subplots(1, 2, figsize=(12, 5))

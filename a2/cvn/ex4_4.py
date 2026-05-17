@@ -95,7 +95,6 @@ def main():
             rate = np.log2(errors[i-1] / errors[i])
             print(f"  N={N_list[i-1]:>5} -> N={N_list[i]:>5}:  rate = {rate:.3f}")
 
-    # ── plots ─────────────────────────────────────────────────────────────
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
     # left: full solution for several N

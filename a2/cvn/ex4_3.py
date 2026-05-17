@@ -6,7 +6,7 @@ T_STAR = 1.6037 / np.pi
 TARGET = -152.00516
 
 
-def burgers_solve(N, T, eps=EPS, cfl_adv=0.4, cfl_diff=0.1):
+def burgers_solve(N, T, eps=EPS, cfl_adv=0.3, cfl_diff=0.2):
 
     h = 2.0 / N
     x = -1.0 + h * np.arange(N + 1)
@@ -55,7 +55,7 @@ def derivative_at_zero(x, u):
     return x[i0], (u[i0 + 1] - u[i0 - 1]) / (2.0 * h)
 
 def main():
-    N_list = [50, 100, 200, 400, 800, 1600]
+    N_list = [50, 100, 200, 400, 800, 1600, 3200]
 
     print(f"eps    = 0.01/pi = {EPS:.6f}")
     print(f"T      = 1.6037/pi = {T_STAR:.6f}")
